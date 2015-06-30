@@ -105,30 +105,33 @@ func ProcessFeed(path string, done chan<- bool) {
 
 	if businessUnitId == "" && consumerId == "" && reviewId == "" && merchantUrl == "" {
 		fmt.Println("Parsed the GSR feed successfully")
+		if done != nil {
+			done <- true
+		}
 		return
 	}
 
 	for _, m := range feed {
 		if businessUnitId != "" && businessUnitId == m.BusinessUnitId {
-			fmt.Printf("Merchant\n\tName: %s \n\tBusinessUnitId: %s\n\tUrl: %s\n\tReviews: %d\n",
-				m.Name, m.BusinessUnitId, m.Url, len(m.Reviews))
+			fmt.Printf("Merchant - %s\n\tName: %s \n\tBusinessUnitId: %s\n\tUrl: %s\n\tReviews: %d\n",
+				path, m.Name, m.BusinessUnitId, m.Url, len(m.Reviews))
 		}
 
 		if merchantUrl != "" && strings.HasPrefix(m.Url, merchantUrl) {
-			fmt.Printf("Merchant\n\tName: %s \n\tBusinessUnitId: %s\n\tUrl: %s\n\tReviews: %d\n",
-				m.Name, m.BusinessUnitId, m.Url, len(m.Reviews))
+			fmt.Printf("Merchant - %s\n\tName: %s \n\tBusinessUnitId: %s\n\tUrl: %s\n\tReviews: %d\n",
+				path, m.Name, m.BusinessUnitId, m.Url, len(m.Reviews))
 		}
 
 		if consumerId != "" || reviewId != "" {
 			for _, r := range m.Reviews {
 				if r.ReviewerId == consumerId {
-					fmt.Printf("Consumer\n\tMerchant: %s\n\tConsumerId: %s\n\tReviewUrl: %s\n",
-						m.Name, r.ReviewerId, r.ReviewUrl)
+					fmt.Printf("Consumer - %s\n\tMerchant: %s\n\tConsumerId: %s\n\tReviewUrl: %s\n",
+						path, m.Name, r.ReviewerId, r.ReviewUrl)
 				}
 
 				if r.Id == reviewId {
-					fmt.Printf("Review\n\tMerchant: %s\n\tConsumerId: %s\n\tReviewUrl: %s\n",
-						m.Name, r.ReviewerId, r.ReviewUrl)
+					fmt.Printf("Review - %s\n\tMerchant: %s\n\tConsumerId: %s\n\tReviewUrl: %s\n",
+						path, m.Name, r.ReviewerId, r.ReviewUrl)
 				}
 			}
 		}
