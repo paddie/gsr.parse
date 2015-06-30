@@ -81,10 +81,10 @@ func determineXmlSchema(rd *bufio.Reader) (XmlSchema, error) {
 
 	header := string(b)
 	if strings.Contains(header, "3.0/merchant_reviews.xsd") {
-		log.Println("merchant_reviews.xsd v3.0 detected")
+		// log.Println("merchant_reviews.xsd v3.0 detected")
 		return v3, nil
 	} else if strings.Contains(header, "4.0/merchant_reviews.xsd") {
-		log.Println("merchant_reviews.xsd v4.0 detected")
+		// log.Println("merchant_reviews.xsd v4.0 detected")
 		return v4, nil
 	}
 

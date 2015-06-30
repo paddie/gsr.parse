@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"runtime"
 	"strings"
 )
 
@@ -17,40 +19,85 @@ var (
 	consumerId     string
 	reviewId       string
 	merchantUrl    string
+	locale         string
 )
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	flag.StringVar(&path, "path", "", "path to a xml.gz or .xml file")
-	// flag.StringVar(&regex, "regex", "", "regex that matches xml.gz or zml files")
-	// flag.StringVar(&dir, "dir", "", "location of xml.gz or .xml files")
+	flag.StringVar(&dir, "dir", "", "location of xml.gz or .xml files")
+
 	flag.StringVar(&businessUnitId, "b", "", "Check for the existence of this business unit id")
 	flag.StringVar(&merchantUrl, "url", "", "Check for the existense of this merchant url")
 	flag.StringVar(&consumerId, "c", "", "Check for the existence of this consumer id")
 	flag.StringVar(&reviewId, "r", "", "Check for the existence of review id")
+	flag.StringVar(&locale, "l", "", "only look at the specified locale")
 
 	flag.Parse()
 
 	if path != "" {
-		ProcessFeed(path)
+		ProcessFeed(path, nil)
 		return
 	}
 
-	// if dir != "" {
+	if dir != "" {
+		ProcessDir(dir)
+		return
+	}
 
-	// }
-
-	// if regex != "" {
-
-	// }
+	ProcessDir(".")
 }
 
-func ProcessDir(dir string) {}
+func ProcessDir(dir string) error {
+	potentials := []string{}
 
-func ProcessRegex(regex string) {
+	finfos, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return err
+	}
 
+	if len(finfos) == 0 {
+		return fmt.Errorf("No files in dir '%s'", dir)
+	}
+
+	locale = strings.ToLower(locale)
+
+	for _, finfo := range finfos {
+		if finfo.IsDir() || !strings.HasPrefix(finfo.Name(), "feed_") {
+			continue
+		}
+
+		if strings.HasSuffix(finfo.Name(), "xml") || strings.HasSuffix(finfo.Name(), "xml.gz") {
+			if locale != "" {
+				if strings.Contains(strings.ToLower(finfo.Name()), locale) {
+					potentials = append(potentials, finfo.Name())
+				}
+			} else {
+				potentials = append(potentials, finfo.Name())
+			}
+		}
+	}
+
+	fmt.Println("Processing files: ", potentials)
+
+	resp := make(chan bool)
+	for _, path := range potentials {
+		go ProcessFeed(path, resp)
+	}
+
+	for _, _ = range potentials {
+		<-resp
+	}
+
+	log.Println("\n\nDone.")
+
+	return nil
 }
 
-func ProcessFeed(path string) {
+func ProcessRegex(regex string) {}
+
+func ProcessFeed(path string, done chan<- bool) {
 	feed, err := ParseFeed(path)
 	if err != nil {
 		log.Fatal(err)
@@ -87,4 +134,7 @@ func ProcessFeed(path string) {
 		}
 	}
 
+	if done != nil {
+		done <- true
+	}
 }
