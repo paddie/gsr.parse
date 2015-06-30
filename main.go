@@ -100,14 +100,10 @@ func ProcessRegex(regex string) {}
 func ProcessFeed(path string, done chan<- bool) {
 	feed, err := ParseFeed(path)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	if businessUnitId == "" && consumerId == "" && reviewId == "" && merchantUrl == "" {
-		fmt.Println("Parsed the GSR feed successfully")
 		if done != nil {
 			done <- true
 		}
+		log.Fatal(err)
 		return
 	}
 
