@@ -103,7 +103,16 @@ func ProcessFeed(path string, done chan<- bool) {
 		if done != nil {
 			done <- true
 		}
-		log.Fatal(err)
+
+		log.Println(err)
+		return
+	}
+
+	if businessUnitId == "" && consumerId == "" && reviewId == "" && merchantUrl == "" {
+		fmt.Printf("%s parsed the GSR feed successfully\n", path)
+		if done != nil {
+			done <- true
+		}
 		return
 	}
 
