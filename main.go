@@ -37,7 +37,7 @@ func main() {
 	flag.Parse()
 
 	if path != "" {
-		ProcessFeed(path, nil)
+		ProcessFeed(path)
 		return
 	}
 
@@ -79,52 +79,54 @@ func ProcessDir(dir string) error {
 		}
 	}
 
-	fmt.Println("Processing files: ", potentials)
-
-	resp := make(chan bool)
+	resp := make(chan int)
 	for _, path := range potentials {
-		go ProcessFeed(path, resp)
+		go func(path string) {
+			resp <- ProcessFeed(path)
+		}(path)
 	}
-
+	matches := 0
+	searching := businessUnitId == "" || consumerId == "" || reviewId == "" || merchantUrl == ""
 	for _, _ = range potentials {
-		<-resp
+		matches += <-resp
 	}
 
-	log.Println("\n\nDone.")
+	if searching {
+		log.Println("Matches: ", matches)
+	} else {
+		log.Println("Done")
+	}
 
 	return nil
 }
 
-func ProcessRegex(regex string) {}
+func ProcessFeed(path string) int {
+	log.Println("Processing: " + path)
 
-func ProcessFeed(path string, done chan<- bool) {
 	feed, err := ParseFeed(path)
 	if err != nil {
-		if done != nil {
-			done <- true
-		}
-
 		log.Println(err)
-		return
+		fmt.Printf("%s failed to parse\n")
+		return 0
 	}
 
 	if businessUnitId == "" && consumerId == "" && reviewId == "" && merchantUrl == "" {
-		fmt.Printf("%s parsed the GSR feed successfully\n", path)
-		if done != nil {
-			done <- true
-		}
-		return
+		fmt.Printf("%s parsed successfully\n", path)
+		return 0
 	}
 
+	matches := 0
 	for _, m := range feed {
 		if businessUnitId != "" && businessUnitId == m.BusinessUnitId {
 			fmt.Printf("Merchant - %s\n\tName: %s \n\tBusinessUnitId: %s\n\tUrl: %s\n\tReviews: %d\n",
 				path, m.Name, m.BusinessUnitId, m.Url, len(m.Reviews))
+			matches++
 		}
 
 		if merchantUrl != "" && strings.HasPrefix(m.Url, merchantUrl) {
 			fmt.Printf("Merchant - %s\n\tName: %s \n\tBusinessUnitId: %s\n\tUrl: %s\n\tReviews: %d\n",
 				path, m.Name, m.BusinessUnitId, m.Url, len(m.Reviews))
+			matches++
 		}
 
 		if consumerId != "" || reviewId != "" {
@@ -132,17 +134,17 @@ func ProcessFeed(path string, done chan<- bool) {
 				if r.ReviewerId == consumerId {
 					fmt.Printf("Consumer - %s\n\tMerchant: %s\n\tConsumerId: %s\n\tReviewUrl: %s\n",
 						path, m.Name, r.ReviewerId, r.ReviewUrl)
+					matches++
 				}
 
 				if r.Id == reviewId {
 					fmt.Printf("Review - %s\n\tMerchant: %s\n\tConsumerId: %s\n\tReviewUrl: %s\n",
 						path, m.Name, r.ReviewerId, r.ReviewUrl)
+					matches++
 				}
 			}
 		}
 	}
 
-	if done != nil {
-		done <- true
-	}
+	return matches
 }
