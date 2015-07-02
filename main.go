@@ -92,9 +92,9 @@ func ProcessDir(dir string) error {
 	}
 
 	if searching {
-		log.Println("Matches: ", matches)
+		fmt.Println("\nMatches: ", matches)
 	} else {
-		log.Println("Done")
+		fmt.Println("\nDone")
 	}
 
 	return nil
@@ -118,28 +118,24 @@ func ProcessFeed(path string) int {
 	matches := 0
 	for _, m := range feed {
 		if businessUnitId != "" && businessUnitId == m.BusinessUnitId {
-			fmt.Printf("Merchant - %s\n\tName: %s \n\tBusinessUnitId: %s\n\tUrl: %s\n\tReviews: %d\n",
-				path, m.Name, m.BusinessUnitId, m.Url, len(m.Reviews))
+			fmt.Printf("%s:\n%s", path, m.String())
 			matches++
 		}
 
 		if merchantUrl != "" && strings.HasPrefix(m.Url, merchantUrl) {
-			fmt.Printf("Merchant - %s\n\tName: %s \n\tBusinessUnitId: %s\n\tUrl: %s\n\tReviews: %d\n",
-				path, m.Name, m.BusinessUnitId, m.Url, len(m.Reviews))
+			fmt.Printf("%s:\n%s", path, m.String())
 			matches++
 		}
 
 		if consumerId != "" || reviewId != "" {
 			for _, r := range m.Reviews {
 				if r.ReviewerId == consumerId {
-					fmt.Printf("Consumer - %s\n\tMerchant: %s\n\tConsumerId: %s\n\tReviewUrl: %s\n",
-						path, m.Name, r.ReviewerId, r.ReviewUrl)
+					fmt.Printf("%s:\n%s", path, r.String())
 					matches++
 				}
 
 				if r.Id == reviewId {
-					fmt.Printf("Review - %s\n\tMerchant: %s\n\tConsumerId: %s\n\tReviewUrl: %s\n",
-						path, m.Name, r.ReviewerId, r.ReviewUrl)
+					fmt.Printf("%s:\n%s", path, r.String())
 					matches++
 				}
 			}
