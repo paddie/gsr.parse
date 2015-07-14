@@ -19,7 +19,7 @@ func (m *Merchant) String() string {
 
 	buffer.WriteString("Merchant:\n")
 	buffer.WriteString("\tName: " + m.Name + "\n")
-	buffer.WriteString("\tName: " + m.BusinessUnitId + "\n")
+	buffer.WriteString("\tBusinessUnitId: " + m.BusinessUnitId + "\n")
 	buffer.WriteString("\tUrl: " + m.Url + "\n")
 	buffer.WriteString(fmt.Sprintf("\tReviews: %d\n", len(m.Reviews)))
 
