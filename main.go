@@ -116,7 +116,7 @@ func ProcessFeed(path string) int {
 	}
 
 	matches := 0
-	for _, m := range feed {
+	for _, m := range feed.Merchants {
 		if businessUnitId != "" && businessUnitId == m.BusinessUnitId {
 			fmt.Printf("%s:\n%s", path, m.String())
 			matches++
