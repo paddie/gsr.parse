@@ -7,8 +7,11 @@ import (
 )
 
 const (
-	xmlfeed = `
-	<?xml version="1.0" encoding="utf-8"?>
+	MERCHANT_ID = "46d8a49d000064000500fa08"
+	REVIEW_ID   = "546add240000640002b4e74a"
+	REVIEWER_ID = "546adcf80000640001974608"
+	FEED        = `
+<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://schemas.google.com/merchant_reviews/4.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://schemas.google.com/merchant_reviews/4.0 http://www.google.com/shopping/reviews/schema/merchant/4.0/merchant_reviews.xsd">
@@ -46,20 +49,17 @@ func TestFeed(t *testing.T) {
 
 	c := Context{t}
 
-	r := strings.NewReader(xmlfeed)
+	r := strings.NewReader(FEED)
 
-	feed, err := parse(r)
+	merchant, err := findMerchantId(r, MERCHANT_ID)
 	c.Fatal(err)
 
-	c.IntMatch(len(feed.Merchants), 1, "Merchant Count")
-
-	merchant := feed.Merchants[0]
-	c.StringMatch(merchant.BusinessUnitId, "46d8a49d000064000500fa08", "BusinessUnitId")
+	c.StringMatch(merchant.BusinessUnitId, MERCHANT_ID, "BusinessUnitId")
 
 	c.IntMatch(len(merchant.Reviews), 1, "Review Count")
 
 	review := merchant.Reviews[0]
-	c.StringMatch(review.Id, "546add240000640002b4e74a", "Review.Id")
+	c.StringMatch(review.Id, REVIEW_ID, "Review.Id")
 
 	date, err := time.Parse(time.RFC3339, "2014-11-18T05:46:12Z")
 	c.Fatal(err)
