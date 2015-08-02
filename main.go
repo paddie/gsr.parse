@@ -1,10 +1,12 @@
 package main
 
 import (
+	"compress/gzip"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"runtime"
 	"strings"
 )
@@ -79,68 +81,86 @@ func ProcessDir(dir string) error {
 		}
 	}
 
-	resp := make(chan int)
+	resp := make(chan *ProcessResult)
 	for _, path := range potentials {
 		go func(path string) {
-			resp <- ProcessFeed(path)
+			merch, err := ProcessFeed(path)
+			resp <- &ProcessResult{err, merch}
 		}(path)
 	}
-	matches := 0
-	searching := businessUnitId == "" || consumerId == "" || reviewId == "" || merchantUrl == ""
 	for _, _ = range potentials {
-		matches += <-resp
+		pr := <-resp
+		if pr.err != nil {
+			log.Println(pr.err)
+		} else {
+			fmt.Println(pr.merchant)
+		}
 	}
 
-	if searching {
-		fmt.Println("\nMatches: ", matches)
-	} else {
-		fmt.Println("\nDone")
-	}
+	fmt.Println("\nDone")
 
 	return nil
 }
 
-func ProcessFeed(path string) int {
+type ProcessResult struct {
+	err      error
+	merchant *Merchant
+}
+
+func ProcessFeed(path string) (*Merchant, error) {
 	log.Println("Processing: " + path)
 
-	feed, err := ParseFeed(path)
+	file, err := os.Open(path)
 	if err != nil {
-		log.Println(err)
-		fmt.Printf("%s failed to parse\n")
-		return 0
+		return nil, err
+	}
+	defer file.Close()
+
+	if strings.HasSuffix(path, "xml.gz") {
+		gz, err := gzip.NewReader(file)
+		if err != nil {
+			return nil, err
+		}
+		defer gz.Close()
+
+		return findMerchantId(gz, businessUnitId)
 	}
 
-	if businessUnitId == "" && consumerId == "" && reviewId == "" && merchantUrl == "" {
-		fmt.Printf("%s parsed successfully\n", path)
-		return 0
-	}
+	return findMerchantId(file, businessUnitId)
 
-	matches := 0
-	for _, m := range feed.Merchants {
-		if businessUnitId != "" && businessUnitId == m.BusinessUnitId {
-			fmt.Printf("%s:\n%s", path, m.String())
-			matches++
-		}
+	// searchMerchant(reader, merchantId)
 
-		if merchantUrl != "" && strings.HasPrefix(m.Url, merchantUrl) {
-			fmt.Printf("%s:\n%s", path, m.String())
-			matches++
-		}
+	// if businessUnitId == "" && consumerId == "" && reviewId == "" && merchantUrl == "" {
+	// 	fmt.Printf("%s parsed successfully\n", path)
+	// 	return 0
+	// }
 
-		if consumerId != "" || reviewId != "" {
-			for _, r := range m.Reviews {
-				if r.ReviewerId == consumerId {
-					fmt.Printf("%s:\n%s", path, r.String())
-					matches++
-				}
+	// matches := 0
+	// for _, m := range feed.Merchants {
+	// 	if businessUnitId != "" && businessUnitId == m.BusinessUnitId {
+	// 		fmt.Printf("%s:\n%s", path, m.String())
+	// 		matches++
+	// 	}
 
-				if r.Id == reviewId {
-					fmt.Printf("%s:\n%s", path, r.String())
-					matches++
-				}
-			}
-		}
-	}
+	// 	if merchantUrl != "" && strings.HasPrefix(m.Url, merchantUrl) {
+	// 		fmt.Printf("%s:\n%s", path, m.String())
+	// 		matches++
+	// 	}
 
-	return matches
+	// 	if consumerId != "" || reviewId != "" {
+	// 		for _, r := range m.Reviews {
+	// 			if r.ReviewerId == consumerId {
+	// 				fmt.Printf("%s:\n%s", path, r.String())
+	// 				matches++
+	// 			}
+
+	// 			if r.Id == reviewId {
+	// 				fmt.Printf("%s:\n%s", path, r.String())
+	// 				matches++
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	// return matches
 }

@@ -1,45 +1,73 @@
 package main
 
 import (
-	"bufio"
-	"compress/gzip"
 	"encoding/xml"
 	"io"
-	"log"
-	"os"
-	"strings"
 )
 
-func ParseFeed(path string) (*Feed, error) {
+func findReviewId(reader io.Reader, reviewId string) (*Review, error) {
 
-	xml, err := os.Open(path)
-	if err != nil {
-		log.Fatal(err)
-	}
+	decoder := xml.NewDecoder(reader)
 
-	if strings.HasSuffix(path, "xml.gz") {
-		gzxml, err := gzip.NewReader(xml)
+	for {
+
+		t, err := decoder.Token()
 		if err != nil {
+			if err == io.EOF {
+				return nil, ReviewNotFound
+			}
 			return nil, err
 		}
 
-		return parse(gzxml)
+		switch se := t.(type) {
+		case xml.StartElement:
+			if se.Name.Local != "review" {
+				continue
+			}
+
+			for _, attr := range se.Attr {
+				if attr.Name.Local == "id" && attr.Value == reviewId {
+					review := &Review{}
+					err = decoder.DecodeElement(review, &se)
+					return review, err
+				}
+			}
+		}
 	}
 
-	return parse(xml)
+	return nil, ReviewNotFound
 }
 
-func parse(r io.Reader) (*Feed, error) {
+func findMerchantId(reader io.Reader, merchantId string) (*Merchant, error) {
 
-	rd := bufio.NewReader(r)
-	dec := xml.NewDecoder(rd)
+	decoder := xml.NewDecoder(reader)
 
-	feed := &Feed{}
+	for {
+		t, err := decoder.Token()
+		if err != nil {
+			if err == io.EOF {
+				return nil, MerchantNotFund
+			}
+			return nil, err
+		}
 
-	err := dec.Decode(feed)
-	if err != nil {
-		return nil, err
+		switch se := t.(type) {
+		case xml.StartElement:
+			if se.Name.Local != "merchant" {
+				continue
+			}
+
+			for _, attr := range se.Attr {
+				if attr.Name.Local == "id" && attr.Value == merchantId {
+
+					merchant := &Merchant{}
+
+					err = decoder.DecodeElement(merchant, &se)
+					return merchant, err
+				}
+			}
+		}
 	}
 
-	return feed, nil
+	return nil, MerchantNotFund
 }
